@@ -1,0 +1,38 @@
+
+    Canteen
+    (c) 2011 by Siarkowy
+
+CHANGE LOG
+
+1.4
+  * Special buffs added. They will appear before player name.
+  * Soulstone Resurrection moved to special buffs.
+  * Misdirection added to special buffs.
+  * Rumsey Rum Black Label added to food buffs.
+
+1.3
+  * Different from player's zone gets now orange taint.
+  * Food buffs renamed to Other.
+  * Soulstone Resurrection buff added.
+
+1.2.2
+  * Renamed Consumables to Food. Takes less space.
+
+1.2.1
+  * Nil error fix.
+
+1.2
+  * Some new settings in dropdown menu: gap between groups and group headers control ability.
+  * Players appear now sorted by raid subgroup.
+  * On demand zone info added.
+  * Minor speed up fixes.
+
+1.1
+  * Added spells:
+      * Amplify Magic
+      * Blessing of Sanctuary
+      * Greater Blessing of Sanctuary
+  * Possibility to save addon's settings.
+
+1.0
+  * Initial version.

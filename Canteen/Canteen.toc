@@ -1,0 +1,9 @@
+## Interface: 20400
+## Title: Canteen
+## Notes: Displays a compact list of raid buffs.
+## Author: Siarkowy
+## Version: 1.4
+## SavedVariables: CanteenDB
+
+embeds.xml
+Canteen.lua
