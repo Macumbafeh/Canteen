@@ -4,6 +4,9 @@
 
 CHANGE LOG
 
+1.5
+  * Allow hiding of groups 6-8.
+
 1.4
   * Special buffs added. They will appear before player name.
   * Soulstone Resurrection moved to special buffs.

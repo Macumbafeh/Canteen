@@ -66,43 +66,43 @@ do
 
 	Canteen.consumables = {
 		-- elixirs --
-		sinfo(11348),	-- Greater Armor 
+		sinfo(11348),	-- Greater Armor
 		sinfo(11390),	-- Arcane Elixir
-		sinfo(11396),	-- Greater Intellect 
+		sinfo(11396),	-- Greater Intellect
 		sinfo(11406),	-- Elixir of Demonslaying
 		sinfo(17538),	-- Elixir of the Mongoose
-		sinfo(17539),	-- Greater Arcane Elixir 
-		sinfo(24363),	-- Mana Regeneration 
-		sinfo(28490),	-- Major Strength 
-		sinfo(28491),	-- Healing Power 
-		sinfo(28493),	-- Major Frost Power 
-		sinfo(28497),	-- Major Agility 
-		sinfo(28501),	-- Major Firepower 
-		sinfo(28502),	-- Major Armor 
-		sinfo(28503),	-- Major Shadow Power 
-		sinfo(28509),	-- Greater Mana Regeneration 
-		sinfo(28514),	-- Empowerment 
-		sinfo(29626),	-- Earthen Elixir 
+		sinfo(17539),	-- Greater Arcane Elixir
+		sinfo(24363),	-- Mana Regeneration
+		sinfo(28490),	-- Major Strength
+		sinfo(28491),	-- Healing Power
+		sinfo(28493),	-- Major Frost Power
+		sinfo(28497),	-- Major Agility
+		sinfo(28501),	-- Major Firepower
+		sinfo(28502),	-- Major Armor
+		sinfo(28503),	-- Major Shadow Power
+		sinfo(28509),	-- Greater Mana Regeneration
+		sinfo(28514),	-- Empowerment
+		sinfo(29626),	-- Earthen Elixir
 		sinfo(38954),	-- Fel Strength Elixir
-		sinfo(39625),	-- Elixir of Major Fortitude 
-		sinfo(33720),	-- Onslaught Elixir 
-		sinfo(33721),	-- Adept's Elixir 
-		sinfo(33726),	-- Elixir of Mastery 
-		sinfo(39627),	-- Elixir of Draenic Wisdom 
-		sinfo(39628),	-- Elixir of Ironskin 
+		sinfo(39625),	-- Elixir of Major Fortitude
+		sinfo(33720),	-- Onslaught Elixir
+		sinfo(33721),	-- Adept's Elixir
+		sinfo(33726),	-- Elixir of Mastery
+		sinfo(39627),	-- Elixir of Draenic Wisdom
+		sinfo(39628),	-- Elixir of Ironskin
 		sinfo(45373),	-- Bloodberry
 		-- flasks --
 		sinfo(17626),	-- Flask of the Titans
-		sinfo(17627),	-- Flask of Distilled Wisdom 
-		sinfo(17628),	-- Flask of Supreme Power 
-		sinfo(17629),	-- Flask of Chromatic Resistance 
+		sinfo(17627),	-- Flask of Distilled Wisdom
+		sinfo(17628),	-- Flask of Supreme Power
+		sinfo(17629),	-- Flask of Chromatic Resistance
 		sinfo(28518),	-- Flask of Fortification
-		sinfo(28519),	-- Flask of Mighty Restoration 
-		sinfo(28520),	-- Flask of Relentless Assault 
-		sinfo(28521),	-- Flask of Blinding Light 
-		sinfo(28540),	-- Flask of Pure Death 
+		sinfo(28519),	-- Flask of Mighty Restoration
+		sinfo(28520),	-- Flask of Relentless Assault
+		sinfo(28521),	-- Flask of Blinding Light
+		sinfo(28540),	-- Flask of Pure Death
 		sinfo(33053),	-- Mr. Pinchy's Blessing
-		sinfo(42735),	-- Flask of Chromatic Wonder 
+		sinfo(42735),	-- Flask of Chromatic Wonder
 		sinfo(40567),	-- Unstable Flask of the Bandit
 		sinfo(40568),	-- Unstable Flask of the Elder
 		sinfo(40572),	-- Unstable Flask of the Beast
@@ -181,7 +181,7 @@ function Canteen:OnTooltipUpdate()
 
 	local myzone = GetRealZoneText()
 
-	for g = 1, 8 do
+	for g = 1, self.db.profile.hide68 and 5 or 8 do
 		for k, i in ipairs(ids[g]) do
 			if k == 1 then
 				if self.db.profile.gap and g ~= 1 then
@@ -240,6 +240,9 @@ function Canteen:OnTooltipUpdate()
 				'checkIcon',	special or nil
 			)
 		end
+	end
+
+	for g = 1, 8 do
 		wipe(ids[g])
 	end
 
@@ -272,6 +275,14 @@ Canteen.OnMenuRequest = {
 			get = function() return Canteen.db.profile.zone end,
 			set = function(v) Canteen.db.profile.zone = v; Canteen:Update() end,
 			order = 3,
+		},
+		hide68 = {
+			name = "Hide groups 6-8",
+			desc = "Toggle hiding of groups 6-8",
+			type = "toggle",
+			get = function() return Canteen.db.profile.hide68 end,
+			set = function(v) Canteen.db.profile.hide68 = v; Canteen:Update() end,
+			order = 4
 		},
 	}
 }
