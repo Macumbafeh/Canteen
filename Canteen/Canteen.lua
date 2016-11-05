@@ -28,8 +28,6 @@ Canteen.defaultMinimapPosition	= 160
 Canteen.hasIcon					= [[Interface\Icons\Spell_Misc_Food]]
 Canteen.hasNoColor				= true
 
-Canteen.dataReady				= false
-
 do
 	local function sinfo(id)
 		return select(1, GetSpellInfo(id)) or "?"
@@ -139,32 +137,75 @@ do
 	}
 end
 
+local esq = "|T%s:16|t"
+
 local function wipe(t) for k, v in pairs(t) do t[k] = nil end end
 
-local general, paladin, consumables, ids
-local esq = "|T%s:16|t"
-local buff, color, icon, n, r, g, b, _
+function Canteen.GetPlayerColor(unit)
+	local r, g, b = .5, .5, .5
+	if UnitIsConnected(unit) then
+		local color = colors[select(2, UnitClass(unit)) or "PRIEST"]
+		r, g, b = color.r, color.g, color.b
+	end
+	return r, g, b
+end
 
-general		= { }
-paladin		= { }
-consumables	= { }
-ids			= { {}, {}, {}, {}, {}, {}, {}, {} }
+function Canteen.IsInGroup()
+	return UnitInRaid("player") or GetNumPartyMembers() > 0
+end
+
+local general, paladin, consumables = {}, {}, {}
+local ids = { {}, {}, {}, {}, {}, {}, {}, {} }
+
+function Canteen:GetGroupedBuffs(unit)
+	wipe(general)
+	wipe(paladin)
+	wipe(consumables)
+
+	local n = 0
+	local special
+
+	while true do
+		n = n + 1
+		local buff, _, icon = UnitBuff(unit, n)
+		if not buff then
+			break
+		elseif not special and tContains(self.special, icon) then
+			special = icon
+		elseif tContains(self.general, buff) then
+			tinsert(general, format(esq, icon))
+		elseif tContains(self.paladin, buff) then
+			tinsert(paladin, format(esq, icon))
+		elseif tContains(self.consumables, buff) then
+			tinsert(consumables, format(esq, icon))
+		end
+	end
+
+	sort(general)
+	sort(paladin)
+	sort(consumables)
+
+	return general, paladin, consumables, special
+end
 
 function Canteen:OnInitialize()
 	self:RegisterDB("CanteenDB")
+	self:RegisterEvent("PARTY_MEMBERS_CHANGED", "Update")
 	self:RegisterEvent("RAID_ROSTER_UPDATE", "Update")
 	self:ScheduleRepeatingEvent(function() self:Update() end, 1)
 end
 
 function Canteen:OnTooltipUpdate()
-	self.dataReady = self.dataReady and true or GetRaidRosterInfo(1)
-
-	if not self.dataReady then return end
-
-	if not UnitInRaid("player") then
-		tablet:SetHint("You have to be in a raid group.")
+	if not self.IsInGroup() then
+		tablet:SetHint("You need to be in a group.")
 		return
 	end
+
+	if not GetRaidRosterInfo(1) and not UnitName("party1") then
+		return -- no data yet, possible briefly after group update events
+	end
+
+	local inRaid = UnitInRaid("player")
 
 	local cat = tablet:AddCategory(
 		'text',		'Player',
@@ -172,62 +213,65 @@ function Canteen:OnTooltipUpdate()
 		'text3',	'Paladin',
 		'text4',	'Other',
 		'text5',	'Zone',
-		'columns',	self.db.profile.zone and 5 or 4
+		'columns',	inRaid and self.db.profile.zone and 5 or 4
 	)
 
+	if inRaid then
+		self:OnRaidTooltipUpdate(cat)
+	else
+		self:OnPartyTooltipUpdate(cat)
+	end
+
+	tablet:SetHint("Buff list updates every second.")
+end
+
+local party = { "player", "party1", "party2", "party3", "party4" }
+
+function Canteen:OnPartyTooltipUpdate(cat)
+	if self.db.profile.gap then
+		cat:AddLine()
+	end
+
+	for _, unit in pairs(party) do
+		if UnitName(unit) then
+			local general, paladin, consumables, special = self:GetGroupedBuffs(unit)
+			local r, g, b = self.GetPlayerColor(unit)
+
+			cat:AddLine(
+				'text',			format("|cff%.2x%.2x%.2x%s|r", r * 255, g * 255, b * 255, UnitName(unit)),
+				'text2',		table_concat(general, ""),
+				'text3',		table_concat(paladin, ""),
+				'text4',		table_concat(consumables, ""),
+				'hasCheck',		true,
+				'checked',		special and true or nil,
+				'checkIcon',	special or nil
+			)
+		end
+	end
+end
+
+function Canteen:OnRaidTooltipUpdate(cat)
 	for i = 1, GetNumRaidMembers() do
 		tinsert(ids[ select(3, GetRaidRosterInfo(i)) or 0 ], i)
 	end
 
 	local myzone = GetRealZoneText()
 
-	for g = 1, self.db.profile.hide68 and 5 or 8 do
-		for k, i in ipairs(ids[g]) do
-			if k == 1 then
-				if self.db.profile.gap and g ~= 1 then
+	for grp = 1, self.db.profile.hide68 and 5 or 8 do
+		for k, i in ipairs(ids[grp]) do
+			local unit = "raid" .. i
+			local name, _, _, _, _, class, zone = GetRaidRosterInfo(i)
+			local general, paladin, consumables, special = self:GetGroupedBuffs(unit)
+			local r, g, b = self.GetPlayerColor(unit)
+
+			if k == 1 then -- first player in group
+				if self.db.profile.gap then -- gaps between groups
 					cat:AddLine()
 				end
-				if self.db.profile.header then
-					cat:AddLine('text', format("|cffccccccGroup %d|r", g))
+				if self.db.profile.header then -- party header
+					cat:AddLine('text', format("|cffccccccGroup %d|r", grp))
 				end
 			end
-
-			wipe(general)
-			wipe(paladin)
-			wipe(consumables)
-
-			n = 0
-			local special
-
-			while true do
-				n = n + 1
-				buff, _, icon = UnitBuff("raid" .. i, n)
-				if not buff then
-					break
-				elseif not special and tContains(self.special, icon) then
-					special = icon
-				elseif tContains(self.general, buff) then
-					tinsert(general, format(esq, icon))
-				elseif tContains(self.paladin, buff) then
-					tinsert(paladin, format(esq, icon))
-				elseif tContains(self.consumables, buff) then
-					tinsert(consumables, format(esq, icon))
-				end
-			end
-
-			local name, _, _, _, _, class, zone = GetRaidRosterInfo(i)
-			local r, g, b
-
-			local connected = UnitIsConnected("raid" .. i)
-			if connected then
-				r, g, b = colors[class].r, colors[class].g, colors[class].b
-			else
-				r, g, b = .5, .5, .5
-			end
-
-			sort(general)
-			sort(paladin)
-			sort(consumables)
 
 			cat:AddLine(
 				'text',			format("|cff%.2x%.2x%.2x%s|r", r * 255, g * 255, b * 255, name),
@@ -242,35 +286,33 @@ function Canteen:OnTooltipUpdate()
 		end
 	end
 
-	for g = 1, 8 do
-		wipe(ids[g])
+	for grp = 1, 8 do
+		wipe(ids[grp])
 	end
-
-	tablet:SetHint("Buff list updates every second.")
 end
 
 Canteen.OnMenuRequest = {
 	type = "group",
 	args = {
 		gap = {
-			name = "Gap between groups",
-			desc = "Toggle the gap separating subsequent groups",
+			name = "Group gaps",
+			desc = "Toggle gaps separating subsequent raid groups.",
 			type = "toggle",
 			get = function() return Canteen.db.profile.gap end,
 			set = function(v) Canteen.db.profile.gap = v; Canteen:Update() end,
 			order = 1,
 		},
 		headers = {
-			name = "Group header",
-			desc = "Toggle group headers above every party",
+			name = "Group headers",
+			desc = "Toggle headers above each raid subgroup.",
 			type = "toggle",
 			get = function() return Canteen.db.profile.header end,
 			set = function(v) Canteen.db.profile.header = v; Canteen:Update() end,
 			order = 2,
 		},
 		zone = {
-			name = "Zone info",
-			desc = "Display zone information",
+			name = "Raid zone info",
+			desc = "Display zone information while in raid.",
 			type = "toggle",
 			get = function() return Canteen.db.profile.zone end,
 			set = function(v) Canteen.db.profile.zone = v; Canteen:Update() end,
@@ -278,7 +320,7 @@ Canteen.OnMenuRequest = {
 		},
 		hide68 = {
 			name = "Hide groups 6-8",
-			desc = "Toggle hiding of groups 6-8",
+			desc = "Toggle hiding of groups 6-8.",
 			type = "toggle",
 			get = function() return Canteen.db.profile.hide68 end,
 			set = function(v) Canteen.db.profile.hide68 = v; Canteen:Update() end,
